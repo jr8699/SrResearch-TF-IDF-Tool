@@ -23,13 +23,15 @@ import java.util.*;
 public class TFIDF {
 
 	//All the words that have been scanned
-	private List<List<String>> words;
+	private List<List<List<String>>> words;
 	
 	//All the weights of the words that have been scanned
-	private List<List<Float>> wordWeights;
+	private List<List<List<Float>>> wordWeights;
 	
-	//The folder that has all of the documents
-	private static final String path = "";
+	//Information about the folders and documents to scan
+	private List<String> path;
+	private int pathNum;
+	private List<Integer> docPerPath;
 	
 	/**
 	 * Main Method
@@ -37,6 +39,10 @@ public class TFIDF {
 	 */
 	public static void main(String[] args) {
 		TFIDF tfidf = new TFIDF();
+		if(!tfidf.loadAssets()){ //Try to load all the assets
+			System.out.println("Load failed, exiting...");
+			System.exit(1);
+		}
 		tfidf.runAlgorithm();
 	}
 	
@@ -44,35 +50,70 @@ public class TFIDF {
 	 * Constructor for TFIDF
 	 */
 	public TFIDF(){
-		this.words = new ArrayList<List<String>>();
-		this.wordWeights = new ArrayList<List<Float>>();
+		this.words = new ArrayList<List<List<String>>>();
+		this.wordWeights = new ArrayList<List<List<Float>>>();
+		
+		this.pathNum = 5;
+		
+		for(int i = 0;i < pathNum; i++){
+			this.words.add(new ArrayList<List<String>>());
+			this.wordWeights.add(new ArrayList<List<Float>>());
+		}
+		
+		//Add the directories and number of documents to scan
+		path.add("");
+		docPerPath.add(0);
+		path.add("");
+		docPerPath.add(0);
+		path.add("");
+		docPerPath.add(0);
+		path.add("");
+		docPerPath.add(0);
+		path.add("");
+		
+		//May not need to do this
+		//for(int i = 0;i < docPerPath.get(i); i++){
+		//	this.words.get(i).add(new ArrayList<String>());
+		//	this.wordWeights.add(new ArrayList<Float>());
+		//}
 	}
 
+	/**
+	 * Loads all the documents in at once.
+	 * This approach may not work but we will see
+	 * @return
+	 */
+	public boolean loadAssets(){
+		for(int i = 0;i < pathNum;i++){ //Loop through all directories
+			int fileNum = 1; //start at file 1
+			for(int j = 0;j < docPerPath.get(i);j++){
+		
+				//Create appropriate string to find the next file
+				List<String> f;
+				if(fileNum < 10){
+					f = readFile(path.get(i) + "/00" + Integer.toString(fileNum));
+				}else if(fileNum < 100){
+					f = readFile(path.get(i) +"/0" + Integer.toString(fileNum));
+				}else{
+					f = readFile(path.get(i) + "/" + Integer.toString(fileNum));
+				}
+		
+				if(f==null){ //End algorithm if no file found
+					return false; 
+				}else{ //Add string list of some file to category i
+					words.get(i).add(f);
+				}
+		
+		//STOPPED HERE
+			}
+		}
+		return true;
+	}
+	
 	/**
 	 * Executes tf-idf on the document specified from path
 	 */
 	public void runAlgorithm(){
-		int fileNum = 1; //start at file 1
-		for(;;){ //Infinite loop, loop ends when no file is found
-		
-		//Create appropriate string to find the next file
-		List<String> f;
-		if(fileNum < 10){
-			f = readFile("00" + Integer.toString(fileNum));
-		}else if(fileNum < 100){
-			f = readFile("0" + Integer.toString(fileNum));
-		}else{
-			f = readFile(Integer.toString(fileNum));
-		}
-		
-		if(f==null){ //End algorithm if no file found
-			compileResults();
-			return; 
-		}
-		
-		//STOPPED HERE
-		
-		}
 	}
 	
 	/**
