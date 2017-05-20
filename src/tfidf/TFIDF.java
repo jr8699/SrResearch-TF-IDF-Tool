@@ -43,6 +43,7 @@ public class TFIDF {
 			System.out.println("Load failed, exiting...");
 			System.exit(1);
 		}
+		tfidf.printLoadDebug();
 		tfidf.runAlgorithm();
 	}
 	
@@ -52,6 +53,8 @@ public class TFIDF {
 	public TFIDF(){
 		this.words = new ArrayList<List<List<String>>>();
 		this.wordWeights = new ArrayList<List<List<Float>>>();
+		this.path = new ArrayList<String>();
+		this.docPerPath = new ArrayList<Integer>();
 		
 		this.pathNum = 5;
 		
@@ -61,23 +64,33 @@ public class TFIDF {
 		}
 		
 		//Add the directories and number of documents to scan
-		path.add("");
-		docPerPath.add(0);
-		path.add("");
-		docPerPath.add(0);
-		path.add("");
-		docPerPath.add(0);
-		path.add("");
-		docPerPath.add(0);
-		path.add("");
+		path.add("C:\\Users\\Justin\\Documents\\bbc\\business");
+		docPerPath.add(2);
+		path.add("C:\\Users\\Justin\\Documents\\bbc\\entertainment");
+		docPerPath.add(2);
+		path.add("C:\\Users\\Justin\\Documents\\bbc\\politics");
+		docPerPath.add(2);
+		path.add("C:\\Users\\Justin\\Documents\\bbc\\sport");
+		docPerPath.add(2);
+		path.add("C:\\Users\\Justin\\Documents\\bbc\\tech");
+		docPerPath.add(2);
 		
-		//May not need to do this
-		//for(int i = 0;i < docPerPath.get(i); i++){
-		//	this.words.get(i).add(new ArrayList<String>());
-		//	this.wordWeights.add(new ArrayList<Float>());
-		//}
+		//Do not need to initialize the individual lists for each file
 	}
 
+	/**
+	 * Prints all the contents loaded to the console for debugging
+	 */
+	public void printLoadDebug(){
+		for(int i = 0; i < pathNum;i++){
+			for(int j = 0; j < docPerPath.get(i);j++){
+				for(String s : words.get(i).get(j)){
+					System.out.println("PATH " + Integer.toString(i) + " " + "Document " + Integer.toString(j) + " " + s);
+				}
+			}
+		}
+	}
+	
 	/**
 	 * Loads all the documents in at once.
 	 * This approach may not work but we will see
@@ -91,11 +104,11 @@ public class TFIDF {
 				//Create appropriate string to find the next file
 				List<String> f;
 				if(fileNum < 10){
-					f = readFile(path.get(i) + "/00" + Integer.toString(fileNum));
+					f = readFile(path.get(i) + "\\00" + Integer.toString(fileNum) + ".txt");
 				}else if(fileNum < 100){
-					f = readFile(path.get(i) +"/0" + Integer.toString(fileNum));
+					f = readFile(path.get(i) +"\\0" + Integer.toString(fileNum) + ".txt");
 				}else{
-					f = readFile(path.get(i) + "/" + Integer.toString(fileNum));
+					f = readFile(path.get(i) + "\\" + Integer.toString(fileNum) + ".txt");
 				}
 		
 				if(f==null){ //End algorithm if no file found
@@ -103,8 +116,7 @@ public class TFIDF {
 				}else{ //Add string list of some file to category i
 					words.get(i).add(f);
 				}
-		
-		//STOPPED HERE
+				fileNum++;
 			}
 		}
 		return true;
@@ -133,14 +145,18 @@ public class TFIDF {
 			String currentWord = "";
 			while((c = r.read()) != -1){ //Read the file
 				char character = (char) c;
-				if(character != ' ' && character != '\n'){ //Add character to the current word
+				if(character != ' ' 			//This will create empty words. Will have to ignore when
+						&& character != '\n' 	//compiling the results
+						&& character != '.' 
+						&& character != ',' 
+						&& character != ';' 
+						&& character != '"'){ //Add character to the current word
 					currentWord = currentWord + character;
 				}else{ //Space or newline detected, start new word
 					fileWords.add(currentWord);
 					currentWord = "";
 				}
 			}
-			fileWords.add(currentWord); //Add the last word after done w/ file
 		}catch(IOException e){
 			System.out.println("Did not find file: " + filepath);
 			return null;
