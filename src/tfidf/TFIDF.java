@@ -26,7 +26,11 @@ public class TFIDF {
 	private List<List<List<String>>> words;
 	
 	//All the weights of the words that have been scanned
-	private List<List<List<Float>>> wordWeights;
+	private List<List<List<Double>>> wordWeights;
+	
+	//All the weights compressed for each category
+	private List<List<Double>> resultsWeights;
+	private List<List<String>> resultsWords;
 	
 	//Information about the folders and documents to scan
 	private List<String> path;
@@ -43,24 +47,30 @@ public class TFIDF {
 			System.out.println("Load failed, exiting...");
 			System.exit(1);
 		}
-		tfidf.printLoadDebug();
+		//tfidf.printLoadDebug();
 		tfidf.runAlgorithm();
+		//tfidf.printWeightDebug();
+		tfidf.compileResults();
+		tfidf.printResults();
 	}
 	
 	/**
 	 * Constructor for TFIDF
 	 */
 	public TFIDF(){
+		this.resultsWeights = new ArrayList<List<Double>>();
+		this.resultsWords = new ArrayList<List<String>>();
 		this.words = new ArrayList<List<List<String>>>();
-		this.wordWeights = new ArrayList<List<List<Float>>>();
+		this.wordWeights = new ArrayList<List<List<Double>>>();
 		this.path = new ArrayList<String>();
 		this.docPerPath = new ArrayList<Integer>();
 		
 		this.pathNum = 5;
 		
+		//Setup lists for words and weights
 		for(int i = 0;i < pathNum; i++){
 			this.words.add(new ArrayList<List<String>>());
-			this.wordWeights.add(new ArrayList<List<Float>>());
+			this.wordWeights.add(new ArrayList<List<Double>>());
 		}
 		
 		//Add the directories and number of documents to scan
@@ -75,9 +85,40 @@ public class TFIDF {
 		path.add("C:\\Users\\Justin\\Documents\\bbc\\tech");
 		docPerPath.add(2);
 		
+		//NOTE: UPDATE THIS IF ABOVE TERMS ARE UPDATED
+		//Create all sub lists for the weights
+		for(int i = 0; i < 2; i++)
+			wordWeights.get(0).add(new ArrayList<Double>());
+		for(int i = 0; i < 2; i++)
+			wordWeights.get(1).add(new ArrayList<Double>());
+		for(int i = 0; i < 2; i++)
+			wordWeights.get(2).add(new ArrayList<Double>());
+		for(int i = 0; i < 2; i++)
+			wordWeights.get(3).add(new ArrayList<Double>());
+		for(int i = 0; i < 2; i++)
+			wordWeights.get(4).add(new ArrayList<Double>());
+		
+		//Setup list for the results
+		for(int i = 0; i < pathNum; i++){
+			this.resultsWeights.add(new ArrayList<Double>());
+			this.resultsWords.add(new ArrayList<String>());
+		}
+		
 		//Do not need to initialize the individual lists for each file
 	}
 
+	/**
+	 * Print the results, mainly for debugging
+	 */
+	public void printResults(){
+		for(int i = 0; i < pathNum;i++){
+			for(int j = 0; j < resultsWords.get(i).size(); j++)
+			System.out.println("Category " + Integer.toString(i) + " " + "Word " + resultsWords.get(i).get(j)
+					+ " " + "Weight " + Double.toString(resultsWeights.get(i).get(j)));
+			
+		}
+	}
+	
 	/**
 	 * Prints all the contents loaded to the console for debugging
 	 */
@@ -86,6 +127,19 @@ public class TFIDF {
 			for(int j = 0; j < docPerPath.get(i);j++){
 				for(String s : words.get(i).get(j)){
 					System.out.println("PATH " + Integer.toString(i) + " " + "Document " + Integer.toString(j) + " " + s);
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Prints the weight list for debugging
+	 */
+	public void printWeightDebug(){
+		for(int i = 0; i < pathNum;i++){
+			for(int j = 0; j < docPerPath.get(i);j++){
+				for(double d : wordWeights.get(i).get(j)){
+					System.out.println("PATH " + Integer.toString(i) + " " + "Document " + Integer.toString(j) + " " + Double.toString(d));
 				}
 			}
 		}
@@ -124,12 +178,67 @@ public class TFIDF {
 	
 	/**
 	 * Executes tf-idf on the document specified from path
+	 * If some term is empty, 0 is assigned
 	 */
 	public void runAlgorithm(){
+		for(int i = 0; i < pathNum;i++){
+			for(int j = 0; j < docPerPath.get(i);j++){
+				for(String s : words.get(i).get(j)){
+					int tf = 0;
+					int df = 0;
+					double vector = 0;
+					if(s != ""){
+						tf = doTf(s,i,j); //if not empty
+						df = doDf(s,i,docPerPath.get(i));
+						vector = tf*Math.log(docPerPath.get(i)/df); //do TFIDF calculation
+						wordWeights.get(i).get(j).add(vector); //add vector to the weight list
+					}else{ //If the word is empty
+						wordWeights.get(i).get(j).add(0.0); //Empty words get 0
+					}
+					
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Does the DF portion of TFIDF of some string given category and number of documents to scan
+	 * @param s
+	 * @param category
+	 * @param numDocuments
+	 * @return
+	 */
+	private int doDf(String s, int category, int numDocuments){
+		int df = 0;
+		for(int i = 0; i < numDocuments; i++){
+			for(String tmpS : words.get(category).get(i)){ //check some document i for s
+				if(s.equals(tmpS)){
+					df++;
+					break;
+				}
+			}
+		}
+		return df;
+	}
+	
+	/**
+	 * Does the TF portion of TFIDF on some string given its category and document numbers
+	 * @param s
+	 * @return
+	 */
+	private int doTf(String s, int category, int document){
+		int tf = 0;
+		//Count number of times string appears in document
+		for(String tmpS : words.get(category).get(document)){
+			if(tmpS.equals(s)) tf++;
+		}
+		return tf;
 	}
 	
 	/**
 	 * Opens a document for the algorithm to read
+	 * Reads characters one by one and determines 
+	 * where words start and end
 	 * @param filepath
 	 * @return
 	 */
@@ -150,7 +259,9 @@ public class TFIDF {
 						&& character != '.' 
 						&& character != ',' 
 						&& character != ';' 
-						&& character != '"'){ //Add character to the current word
+						&& character != '"'
+						&& character != '('
+						&& character != ')'){ //Add character to the current word
 					currentWord = currentWord + character;
 				}else{ //Space or newline detected, start new word
 					fileWords.add(currentWord);
@@ -169,6 +280,50 @@ public class TFIDF {
 	 * the 50 most-important-words for the corpus
 	 */
 	private void compileResults(){
-		
+		for(int i = 0; i < pathNum;i++){
+			for(int j = 0; j < docPerPath.get(i);j++){
+				for(String s : words.get(i).get(j)){
+					if(!scanForRepeat(s,i)){
+						resultsWords.get(i).add(s);
+						resultsWeights.get(i).add(compressWeight(s,i,docPerPath.get(i)));
+					}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Compress the weights for some word
+	 * @param s
+	 * @param category
+	 * @return
+	 */
+	private double compressWeight(String s, int category, int documentNum){
+		double weight = 0;
+		for(int i = 0; i < documentNum; i++){
+			List<String> tmpDoc = words.get(category).get(i);
+			for(int j = 0; j < tmpDoc.size(); j++){
+				if(tmpDoc.get(j).equals(s)){
+					//update value
+					weight = weight + wordWeights.get(category).get(i).get(j);
+					//resultsWeights.get(category).set(j,prevWeight + wordWeights.get(category).get(i).get(j));
+				}
+			}
+		}
+		return weight;
+	}
+	
+	/**
+	 * Scans the results for a repeat word
+	 * @param s
+	 * @param category
+	 */
+	private boolean scanForRepeat(String s, int category){
+		for(String tmpS : resultsWords.get(category)){
+			if(tmpS.equals(s)){
+				return true;
+			}
+		}
+		return false;
 	}
 }
