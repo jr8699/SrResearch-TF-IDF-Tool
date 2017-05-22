@@ -6,7 +6,9 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.*;
 
@@ -37,6 +39,9 @@ public class TFIDF {
 	private int pathNum;
 	private List<Integer> docPerPath;
 	
+	//Write path
+	private String writePath;
+	
 	/**
 	 * Main Method
 	 * @param args
@@ -51,7 +56,10 @@ public class TFIDF {
 		tfidf.runAlgorithm();
 		//tfidf.printWeightDebug();
 		tfidf.compileResults();
-		tfidf.printResults();
+		//tfidf.printResults();
+		if(!tfidf.writeResults()){
+			System.out.println("Writing was unsuccessful");
+		}
 	}
 	
 	/**
@@ -72,6 +80,9 @@ public class TFIDF {
 			this.words.add(new ArrayList<List<String>>());
 			this.wordWeights.add(new ArrayList<List<Double>>());
 		}
+		
+		//Set write path
+		writePath = "C:\\Users\\Justin\\Documents\\bbc\\results";
 		
 		//Add the directories and number of documents to scan
 		path.add("C:\\Users\\Justin\\Documents\\bbc\\business");
@@ -107,6 +118,67 @@ public class TFIDF {
 		//Do not need to initialize the individual lists for each file
 	}
 
+	/**
+	 * Writes the results of the TFIDF algorithm to a file
+	 * Only writes the 50-most-important-words to some number of files
+	 * @return success of writing
+	 */
+	public boolean writeResults(){
+		for(int fileNum = 0; fileNum < this.pathNum; fileNum++){
+			try {
+				PrintWriter printer = new PrintWriter(writePath + "\\" + Integer.toString(fileNum) + "-Results.txt", "UTF-8");
+				String top50[] = find50(fileNum);
+				for(int i = top50.length-2; i > 0; i--){ //write to file
+					printer.println(top50[i]);
+				}
+				printer.close();
+			} catch (FileNotFoundException | UnsupportedEncodingException e) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	/**
+	 * Print the organized 50 weights for debugging
+	 * @param category, w, wo
+	 */
+	private void printFinalWeights(double[] w, String[] wo, int category){
+		for(int i = w.length-2; i > 0 ;i--){
+			System.out.println("Category: " + Integer.toString(category) + " Word: " + wo[i] + " Weight: " + w[i]);
+		}
+
+	}
+	
+	/**
+	 * Finds the 50 most important words for some category
+	 * @param category
+	 * @return
+	 */
+	private String[] find50(int category){
+		String tmpWords[] = new String[51];
+		double tmpWeights[] = new double[51];
+		
+		for(int i = 0; i < resultsWeights.get(category).size();i++){
+			int j = 0;
+			while(resultsWeights.get(category).get(i)>=tmpWeights[j] && j < tmpWeights.length-1){ //find where it needs to go
+				j++;
+			}
+			int h = 0;
+			j--; //take one off to correct it, no idea why this fixes it
+			while(h<j){ //move everything less than down a slot
+				tmpWeights[h] = tmpWeights[h+1];
+				tmpWords[h] = tmpWords[h+1];
+				h++;
+			}
+			if(h > 0){ //if we moved, put new value in
+				tmpWords[j] = resultsWords.get(category).get(i);
+				tmpWeights[j] = resultsWeights.get(category).get(i);
+			}
+		}
+		printFinalWeights(tmpWeights,tmpWords,category);
+		return tmpWords;
+	}
 	/**
 	 * Print the results, mainly for debugging
 	 */
@@ -148,7 +220,7 @@ public class TFIDF {
 	/**
 	 * Loads all the documents in at once.
 	 * This approach may not work but we will see
-	 * @return
+	 * @return success of load
 	 */
 	public boolean loadAssets(){
 		for(int i = 0;i < pathNum;i++){ //Loop through all directories
@@ -206,7 +278,7 @@ public class TFIDF {
 	 * @param s
 	 * @param category
 	 * @param numDocuments
-	 * @return
+	 * @return df
 	 */
 	private int doDf(String s, int category, int numDocuments){
 		int df = 0;
@@ -224,7 +296,7 @@ public class TFIDF {
 	/**
 	 * Does the TF portion of TFIDF on some string given its category and document numbers
 	 * @param s
-	 * @return
+	 * @return tf
 	 */
 	private int doTf(String s, int category, int document){
 		int tf = 0;
@@ -240,7 +312,7 @@ public class TFIDF {
 	 * Reads characters one by one and determines 
 	 * where words start and end
 	 * @param filepath
-	 * @return
+	 * @return List<String> words
 	 */
 	private List<String> readFile(String filepath){
 		File f = new File(filepath);
@@ -254,17 +326,14 @@ public class TFIDF {
 			String currentWord = "";
 			while((c = r.read()) != -1){ //Read the file
 				char character = (char) c;
-				if(character != ' ' 			//This will create empty words. Will have to ignore when
-						&& character != '\n' 	//compiling the results
-						&& character != '.' 
-						&& character != ',' 
-						&& character != ';' 
-						&& character != '"'
-						&& character != '('
-						&& character != ')'){ //Add character to the current word
+				if(!(character >= ' ' && character <= '\\') &&	
+						!(character >= ':' && character <= '@') &&	
+						!(character >= '[' && character <= '`') &&	
+						!(character >= '{' && character <= '~')  //This will create empty words. Will have to ignore
+						){ //Add character to the current word
 					currentWord = currentWord + character;
-				}else{ //Space or newline detected, start new word
-					fileWords.add(currentWord);
+				}else{ //Bad character detected, add current word
+					if(currentWord != "") fileWords.add(currentWord); //handle chains of bad characters
 					currentWord = "";
 				}
 			}
@@ -296,7 +365,7 @@ public class TFIDF {
 	 * Compress the weights for some word
 	 * @param s
 	 * @param category
-	 * @return
+	 * @return weight
 	 */
 	private double compressWeight(String s, int category, int documentNum){
 		double weight = 0;
