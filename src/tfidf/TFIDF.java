@@ -60,6 +60,7 @@ public class TFIDF {
 		if(!tfidf.writeResults()){
 			System.out.println("Writing was unsuccessful");
 		}
+		System.out.println("Finished!");
 	}
 	
 	/**
@@ -84,29 +85,35 @@ public class TFIDF {
 		//Set write path
 		writePath = "C:\\Users\\Justin\\Documents\\bbc\\results";
 		
+		//Documents to read for each category
+		int docNum0 = 100;
+		int docNum1 = 100;
+		int docNum2 = 100;
+		int docNum3 = 100;
+		int docNum4 = 100;
+		
 		//Add the directories and number of documents to scan
 		path.add("C:\\Users\\Justin\\Documents\\bbc\\business");
-		docPerPath.add(2);
+		docPerPath.add(docNum0);
 		path.add("C:\\Users\\Justin\\Documents\\bbc\\entertainment");
-		docPerPath.add(2);
+		docPerPath.add(docNum1);
 		path.add("C:\\Users\\Justin\\Documents\\bbc\\politics");
-		docPerPath.add(2);
+		docPerPath.add(docNum2);
 		path.add("C:\\Users\\Justin\\Documents\\bbc\\sport");
-		docPerPath.add(2);
+		docPerPath.add(docNum3);
 		path.add("C:\\Users\\Justin\\Documents\\bbc\\tech");
-		docPerPath.add(2);
+		docPerPath.add(docNum4);
 		
-		//NOTE: UPDATE THIS IF ABOVE TERMS ARE UPDATED
 		//Create all sub lists for the weights
-		for(int i = 0; i < 2; i++)
+		for(int i = 0; i < docNum0; i++)
 			wordWeights.get(0).add(new ArrayList<Double>());
-		for(int i = 0; i < 2; i++)
+		for(int i = 0; i < docNum1; i++)
 			wordWeights.get(1).add(new ArrayList<Double>());
-		for(int i = 0; i < 2; i++)
+		for(int i = 0; i < docNum2; i++)
 			wordWeights.get(2).add(new ArrayList<Double>());
-		for(int i = 0; i < 2; i++)
+		for(int i = 0; i < docNum3; i++)
 			wordWeights.get(3).add(new ArrayList<Double>());
-		for(int i = 0; i < 2; i++)
+		for(int i = 0; i < docNum4; i++)
 			wordWeights.get(4).add(new ArrayList<Double>());
 		
 		//Setup list for the results
@@ -126,7 +133,7 @@ public class TFIDF {
 	public boolean writeResults(){
 		for(int fileNum = 0; fileNum < this.pathNum; fileNum++){
 			try {
-				PrintWriter printer = new PrintWriter(writePath + "\\" + Integer.toString(fileNum) + "-Results.txt", "UTF-8");
+				PrintWriter printer = new PrintWriter(writePath + "\\" + Integer.toString(fileNum) + "-Results.txt", "ASCII");
 				String top50[] = find50(fileNum);
 				for(int i = top50.length-2; i > 0; i--){ //write to file
 					printer.println(top50[i]);
@@ -144,8 +151,8 @@ public class TFIDF {
 	 * @param category, w, wo
 	 */
 	private void printFinalWeights(double[] w, String[] wo, int category){
-		for(int i = w.length-2; i > 0 ;i--){
-			System.out.println("Category: " + Integer.toString(category) + " Word: " + wo[i] + " Weight: " + w[i]);
+		for(int i = w.length-2; i > -1 ;i--){
+			System.out.println("Category: " + Integer.toString(category) + " Word: " + wo[i] + " Weight: " + w[i] + " NUMBER: " + i);
 		}
 
 	}
@@ -176,7 +183,8 @@ public class TFIDF {
 				tmpWeights[j] = resultsWeights.get(category).get(i);
 			}
 		}
-		printFinalWeights(tmpWeights,tmpWords,category);
+		//printFinalWeights(tmpWeights,tmpWords,category);
+		System.out.println("Found top50 for category: " + Integer.toString(category));
 		return tmpWords;
 	}
 	/**
@@ -270,6 +278,7 @@ public class TFIDF {
 					
 				}
 			}
+			System.out.println("Ran TF-IDF on category: " + Integer.toString(i));
 		}
 	}
 	
@@ -320,16 +329,15 @@ public class TFIDF {
 		
 		try{ //Try to read the file
 			InputStream in = new FileInputStream(f);
-			Reader r = new InputStreamReader(in, Charset.defaultCharset());
+			Reader r = new InputStreamReader(in, Charset.forName("ASCII"));
 			
 			int c;
 			String currentWord = "";
 			while((c = r.read()) != -1){ //Read the file
 				char character = (char) c;
-				if(!(character >= ' ' && character <= '\\') &&	
-						!(character >= ':' && character <= '@') &&	
-						!(character >= '[' && character <= '`') &&	
-						!(character >= '{' && character <= '~')  //This will create empty words. Will have to ignore
+				if(character >= 'A' && character <= 'Z' ||	
+						character >= 'a' && character <= 'z' ||
+						character == '-' //This will create empty words. Will have to ignore
 						){ //Add character to the current word
 					currentWord = currentWord + character;
 				}else{ //Bad character detected, add current word
@@ -352,12 +360,13 @@ public class TFIDF {
 		for(int i = 0; i < pathNum;i++){
 			for(int j = 0; j < docPerPath.get(i);j++){
 				for(String s : words.get(i).get(j)){
-					if(!scanForRepeat(s,i)){
+					if(!scanForRepeat(s,i) && s.length() > 2){ //take out two letter words, these are likely junk, may reduce to 1
 						resultsWords.get(i).add(s);
 						resultsWeights.get(i).add(compressWeight(s,i,docPerPath.get(i)));
 					}
 				}
 			}
+			System.out.println("Compressed weights for category: " + Integer.toString(i));
 		}
 	}
 	
@@ -379,6 +388,7 @@ public class TFIDF {
 				}
 			}
 		}
+		
 		return weight;
 	}
 	
