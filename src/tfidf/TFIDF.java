@@ -135,7 +135,7 @@ public class TFIDF {
 			try {
 				PrintWriter printer = new PrintWriter(writePath + "\\" + Integer.toString(fileNum) + "-Results.txt", "ASCII");
 				String top50[] = find50(fileNum);
-				for(int i = top50.length-2; i > 0; i--){ //write to file
+				for(int i = top50.length-1; i > -1; i--){ //write to file
 					printer.println(top50[i]);
 				}
 				printer.close();
@@ -151,7 +151,7 @@ public class TFIDF {
 	 * @param category, w, wo
 	 */
 	private void printFinalWeights(double[] w, String[] wo, int category){
-		for(int i = w.length-2; i > -1 ;i--){
+		for(int i = w.length-1; i > -1 ;i--){
 			System.out.println("Category: " + Integer.toString(category) + " Word: " + wo[i] + " Weight: " + w[i] + " NUMBER: " + i);
 		}
 
@@ -163,25 +163,30 @@ public class TFIDF {
 	 * @return
 	 */
 	private String[] find50(int category){
-		String tmpWords[] = new String[51];
-		double tmpWeights[] = new double[51];
+		String tmpWords[] = new String[50];
+		double tmpWeights[] = new double[50];
 		
-		for(int i = 0; i < resultsWeights.get(category).size();i++){
+		for(int i = 0; i < resultsWeights.get(category).size()-1;i++){
 			int j = 0;
-			while(resultsWeights.get(category).get(i)>=tmpWeights[j] && j < tmpWeights.length-1){ //find where it needs to go
-				j++;
+			if(resultsWeights.get(category).get(i) != 0.0){ //ignore 0.0 to speed this up
+				while(j < tmpWeights.length && resultsWeights.get(category).get(i)>=tmpWeights[j]){ //find where it needs to go
+					j++;
+				}
+				int h = 0;
+				j--; //take one off to correct it
+				while(h<j){ //move everything less than down a slot
+					tmpWeights[h] = tmpWeights[h+1];
+					tmpWords[h] = tmpWords[h+1];
+					h++;
+				}
+			
+			
+				if(h > 0){ //if we moved, put new value in
+					tmpWords[j] = resultsWords.get(category).get(i);
+					tmpWeights[j] = resultsWeights.get(category).get(i);
+				}
 			}
-			int h = 0;
-			j--; //take one off to correct it, no idea why this fixes it
-			while(h<j){ //move everything less than down a slot
-				tmpWeights[h] = tmpWeights[h+1];
-				tmpWords[h] = tmpWords[h+1];
-				h++;
-			}
-			if(h > 0){ //if we moved, put new value in
-				tmpWords[j] = resultsWords.get(category).get(i);
-				tmpWeights[j] = resultsWeights.get(category).get(i);
-			}
+			
 		}
 		//printFinalWeights(tmpWeights,tmpWords,category);
 		System.out.println("Found top50 for category: " + Integer.toString(category));
