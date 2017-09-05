@@ -34,6 +34,8 @@ public class TFIDF {
 	private List<List<Double>> resultsWeights;
 	private List<List<String>> resultsWords;
 	
+	private List<List<String>> sortedResultsWords;
+	
 	//Information about the folders and documents to scan
 	private List<String> path;
 	private int pathNum;
@@ -47,7 +49,21 @@ public class TFIDF {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		TFIDF tfidf = new TFIDF();
+		int docNums[] = new int[5]; //how many documents to process per category
+		docNums[0] = 100;
+		docNums[1] = 100;
+		docNums[2] = 100;
+		docNums[3] = 100;
+		docNums[4] = 100;
+		
+		String docPaths[] = new String[5];
+		docPaths[0] = "C:\\Users\\Justin\\Documents\\bbc\\business";
+		docPaths[1] = "C:\\Users\\Justin\\Documents\\bbc\\entertainment";
+		docPaths[2] = "C:\\Users\\Justin\\Documents\\bbc\\politics";
+		docPaths[3] = "C:\\Users\\Justin\\Documents\\bbc\\sport";
+		docPaths[4] = "C:\\Users\\Justin\\Documents\\bbc\\tech";
+		
+		TFIDF tfidf = new TFIDF(5,"C:\\Users\\Justin\\Documents\\bbc\\results",docNums,docPaths);
 		if(!tfidf.loadAssets()){ //Try to load all the assets
 			System.out.println("Load failed, exiting...");
 			System.exit(1);
@@ -66,60 +82,48 @@ public class TFIDF {
 	/**
 	 * Constructor for TFIDF
 	 */
-	public TFIDF(){
+	public TFIDF(int pathNum,String writePath,int docNums[],String docPaths[]){
 		this.resultsWeights = new ArrayList<List<Double>>();
 		this.resultsWords = new ArrayList<List<String>>();
 		this.words = new ArrayList<List<List<String>>>();
 		this.wordWeights = new ArrayList<List<List<Double>>>();
 		this.path = new ArrayList<String>();
 		this.docPerPath = new ArrayList<Integer>();
+		this.sortedResultsWords = new ArrayList<List<String>>();
 		
-		this.pathNum = 5;
+		this.pathNum = pathNum;
 		
 		//Setup lists for words and weights
-		for(int i = 0;i < pathNum; i++){
+		for(int i = 0;i < this.pathNum; i++){
 			this.words.add(new ArrayList<List<String>>());
 			this.wordWeights.add(new ArrayList<List<Double>>());
 		}
 		
 		//Set write path
-		writePath = "C:\\Users\\Justin\\Documents\\bbc\\results";
-		
-		//Documents to read for each category
-		int docNum0 = 100;
-		int docNum1 = 100;
-		int docNum2 = 100;
-		int docNum3 = 100;
-		int docNum4 = 100;
+		this.writePath = writePath;
 		
 		//Add the directories and number of documents to scan
-		path.add("C:\\Users\\Justin\\Documents\\bbc\\business");
-		docPerPath.add(docNum0);
-		path.add("C:\\Users\\Justin\\Documents\\bbc\\entertainment");
-		docPerPath.add(docNum1);
-		path.add("C:\\Users\\Justin\\Documents\\bbc\\politics");
-		docPerPath.add(docNum2);
-		path.add("C:\\Users\\Justin\\Documents\\bbc\\sport");
-		docPerPath.add(docNum3);
-		path.add("C:\\Users\\Justin\\Documents\\bbc\\tech");
-		docPerPath.add(docNum4);
+		for(int i = 0;i < this.pathNum; i++) {
+			path.add(docPaths[i]);
+			docPerPath.add(docNums[i]);
+		}
 		
 		//Create all sub lists for the weights
-		for(int i = 0; i < docNum0; i++)
-			wordWeights.get(0).add(new ArrayList<Double>());
-		for(int i = 0; i < docNum1; i++)
-			wordWeights.get(1).add(new ArrayList<Double>());
-		for(int i = 0; i < docNum2; i++)
-			wordWeights.get(2).add(new ArrayList<Double>());
-		for(int i = 0; i < docNum3; i++)
-			wordWeights.get(3).add(new ArrayList<Double>());
-		for(int i = 0; i < docNum4; i++)
-			wordWeights.get(4).add(new ArrayList<Double>());
+		for(int i = 0;i < this.pathNum; i++) {
+			for(int j = 0;j < docNums[i];j++) {
+				wordWeights.get(i).add(new ArrayList<Double>());
+			}
+		}
 		
 		//Setup list for the results
-		for(int i = 0; i < pathNum; i++){
+		for(int i = 0; i < this.pathNum; i++){
 			this.resultsWeights.add(new ArrayList<Double>());
 			this.resultsWords.add(new ArrayList<String>());
+		}
+		
+		//List for top50 (mainly for testing)
+		for(int i = 0; i < this.pathNum; i++) {
+			this.sortedResultsWords.add(new ArrayList<String>());
 		}
 		
 		//Do not need to initialize the individual lists for each file
@@ -190,6 +194,10 @@ public class TFIDF {
 		}
 		//printFinalWeights(tmpWeights,tmpWords,category);
 		System.out.println("Found top50 for category: " + Integer.toString(category));
+		
+		//Add to top50 list
+		List<String> listTmpWords = Arrays.asList(tmpWords);
+		this.sortedResultsWords.get(category).addAll(listTmpWords);
 		return tmpWords;
 	}
 	/**
@@ -361,7 +369,7 @@ public class TFIDF {
 	 * Condenses the individual weights of each word scanned to give
 	 * the 50 most-important-words for the corpus
 	 */
-	private void compileResults(){
+	public void compileResults(){
 		for(int i = 0; i < pathNum;i++){
 			for(int j = 0; j < docPerPath.get(i);j++){
 				for(String s : words.get(i).get(j)){
@@ -409,5 +417,13 @@ public class TFIDF {
 			}
 		}
 		return false;
+	}
+	
+	/**
+	 * Getter for word results (top 50)
+	 * @return
+	 */
+	public List<List<String>> getWordsResults(){
+		return this.sortedResultsWords;
 	}
 }
